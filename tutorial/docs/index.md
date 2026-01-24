@@ -9,7 +9,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 	While the tutorial is mostly content complete, it's still being worked on. Minor things might change, and open issues are getting fixed.
 
-	Last updated at 2026-01-22
+	Last updated at 2026-01-24
 
 ## About
 
@@ -44,7 +44,7 @@ Copyright (c) 2025-2026, [Sascha Willems](https://www.saschawillems.de). The con
 
 Vulkan is an explicit low-level API. Writing code for it can be very verbose. To concentrate on the interesting parts we'll be using the following libraries:
 
-* [SFML](https://www.sfml-dev.org/) - Windowing and input (among other things not used in this tutorial). Without a library like this we would have to write a lot of platform specific code. Alternatives are [glfw](https://www.glfw.org/) and [SDL](https://www.libsdl.org/).
+* [SDL](https://www.libsdl.org/) - Windowing and input (among other things not used in this tutorial). Without a library like this we would have to write a lot of platform specific code. Alternatives are [glfw](https://www.glfw.org/) and [SFML](https://www.sfml-dev.org/). SDL has the broadest platform support of these.
 * [Volk](https://github.com/zeux/volk) - Meta-loader that simplifies loading of Vulkan functions.
 * [VMA](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - Simplifies dealing with memory allocations. Removes some of the verbosity around memory management.
 * [glm](https://github.com/g-truc/glm) - A mathematics library with support for things like matrices and vectors.
@@ -95,7 +95,11 @@ This will write a Visual Studio 2022 solution file to the `build` folder. As an 
 
 ## Source
 
-Now that everything is properly set up we can start digging into the code. The following chapters will walk you through the [main source file](https://github.com/SaschaWillems/HowToVulkan/blob/main/source/main.cpp) from top to bottom. Some of the less interesting boilerplate, like variable declarations, are omitted from this document.
+Now that everything is properly set up we can start digging into the code. The following chapters will walk you through the [main source file](https://github.com/SaschaWillems/HowToVulkan/blob/main/source/main.cpp) from top to bottom. 
+
+!!! Warning
+
+	Some of the less interesting initialization, declaration and boilerplate code is omitted from this document. It's advised to also have the main source file open while doing this tutorial.
 
 ## Instance setup
 
@@ -123,10 +127,11 @@ The instance also needs to know about the extensions you want to use. As the nam
 
 	There are two extension types in Vulkan. Instance and device extensions. The former are mostly global, often platform specific extensions independent of your GPU, the latter are based on your GPU's capabilities.
 
-That would mean we'd have to write platform specific code. **But** with a library like SFML we don't have to do that, instead we ask SFML for the platform specific instance extensions:
+That would mean we'd have to write platform specific code. **But** with a library like SDL we don't have to do that, instead we ask SDL for the platform specific instance extensions:
 
 ```cpp
-const std::vector<const char*> instanceExtensions{ sf::Vulkan::getGraphicsRequiredInstanceExtensions() };
+uint32_t instanceExtensionsCount{ 0 };
+char const* const* instanceExtensions{ SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount) };
 ```
 
 So no more need to worry about platform specific things. With the application info and the required extensions set up, we can create our instance:
@@ -135,13 +140,13 @@ So no more need to worry about platform specific things. With the application in
 VkInstanceCreateInfo instanceCI{
 	.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 	.pApplicationInfo = &appInfo,
-	.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size()),
-	.ppEnabledExtensionNames = instanceExtensions.data(),
+	.enabledExtensionCount = instanceExtensionsCount,
+	.ppEnabledExtensionNames = instanceExtensions,
 };
 chk(vkCreateInstance(&instanceCI, nullptr, &instance));
 ```
 
-This is very simple. We pass our application info and both the names and number of instance extensions that SFML gave us (for the platform we're compiling for). Calling [`vkCreateInstance`](https://docs.vulkan.org/refpages/latest/refpages/source/vkCreateInstance.html) creates our instance.
+This is very simple. We pass our application info and both the names and number of instance extensions that SDL gave us (for the platform we're compiling for). Calling [`vkCreateInstance`](https://docs.vulkan.org/refpages/latest/refpages/source/vkCreateInstance.html) creates our instance.
 
 !!! Tip
 
@@ -318,25 +323,25 @@ chk(vmaCreateAllocator(&allocatorCI, &allocator));
 
 To "draw" something in Vulkan (the correct term would be "present an image", more on that later) we need a surface. Most of the time, a surface is taken from a window. Creating both is platform specific, as mentioned in the [instance chapter](#instance-setup). So in theory, this *would* require us to write different code paths for all platform we want to support (Windows, Linux, Android, etc.).
 
-But that's where libraries like SFML come into play. They take care of all the platform specifics for us, so that part becomes dead simple.
+But that's where libraries like SDL come into play. They take care of all the platform specifics for us, so that part becomes dead simple.
 
 !!! Tip
 
-	Libraries like SFML, glfw or SDL also take care of other platform specific functionality like input, audio and networking (to a varying degree).
+	Libraries like SDL, glfw and SFML also take care of other platform specific functionality like input, audio and networking (to a varying degree).
 
-First we create a window:
+First we create a window with Vulkan support:
 
 ```cpp
-auto window = sf::RenderWindow(sf::VideoMode({ 1280, 720u }), "How to Vulkan");
+SDL_Window* window = SDL_CreateWindow("How to Vulkan", 1280u, 720u, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 ```
 
 And then request a Vulkan surface for that window:
 
 ```cpp
-chk(window.createVulkanSurface(instance, surface));
+chk(SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface));
 ```
 
-For the following chapter(s) we'll need to know the properties of the surface we just created, we get them via [`vkGetPhysicalDeviceSurfaceCapabilitiesKHR`](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetPhysicalDeviceSurfaceCapabilitiesKHR.html) and store them for future reference:
+For the following chapter(s) we'll need to know the properties of the surface we just created, so we get them via [`vkGetPhysicalDeviceSurfaceCapabilitiesKHR`](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetPhysicalDeviceSurfaceCapabilitiesKHR.html) and store them for future reference:
 
 ```cpp
 VkSurfaceCapabilitiesKHR surfaceCaps{};
@@ -1310,11 +1315,12 @@ After a successful call to [`vkCreateGraphicsPipelines`](https://docs.vulkan.org
 
 Getting to this point took quite an effort but we're now ready to actually "draw" something to the screen. Like so much before, this is both explicit and indirect in Vulkan. Getting something displayed on screen nowadays is a complex matter compared to how early computer graphics worked. Esp. with an API that has to support so many different platforms and devices.
 
-This brings us to the render loop, in which we'll take user-input, render our scene, update shader values and make sure all of this is properly synchronized between CPU and GPU and on the GPU itself. It's another area that *would* require platform-specific handling. But again SFML will do away with that and simplify the actual loop:
+This brings us to the render loop, in which we'll take user-input, render our scene, update shader values and make sure all of this is properly synchronized between CPU and GPU and on the GPU itself:
 
 ```cpp
-sf::Clock clock;
-while (window.isOpen()) {
+uint64_t lastTime{ SDL_GetTicks() };
+bool quit{ false };
+while (!quit) {
 	// Wait on fence
 	// Acquire next image
 	// Update shader data
@@ -1325,9 +1331,9 @@ while (window.isOpen()) {
 }
 ```
 
-The loop will be executed as long as the window stays open. SFML also gives us a precise [clock](https://www.sfml-dev.org/documentation/3.0.2/classsf_1_1Clock.html) that we can use to measure elapsed time for framerate-independent calculations like rotations.
+The loop will be executed as long as the window stays open. SDL also gives us precise [timing functions](https://wiki.libsdl.org/SDL3/SDL_GetTicks) that we use to measure elapsed time for framerate-independent calculations later on.
 
-There's a lot happening inside the loop, so we'll look at each part separately.
+There's a lot happening inside the loop, so we'll now look at each part separately.
 
 ### Wait on fence
 
@@ -1637,53 +1643,54 @@ Calling [vkQueuePresentKHR](https://docs.vulkan.org/refpages/latest/refpages/sou
 
 ### Poll events
 
-Last but not least, we work through the event queue of the operating system. This is done in an additional loop (inside the render loop) where we call SFML's `pollEvent` until all events have been popped from the queue. We only handle event types we're interested in:
+Last but not least, we work through the event queue of the operating system. This is done in an additional loop (inside the render loop) where we call SDL's [event polling function](https://wiki.libsdl.org/SDL3/SDL_PollEvent) until all events have been proessed. We only handle event types we're interested in:
 
 ```cpp
-while (const std::optional event = window.pollEvent()) {
+float elapsedTime{ (SDL_GetTicks() - lastTime) / 1000.0f };
+lastTime = SDL_GetTicks();
+for (SDL_Event event; SDL_PollEvent(&event);) {
 
-	// Exit loop if window is about to close
-	if (event->is<sf::Event::Closed>()) {
-		window.close();
+	// Exit loop if the application is about to close
+	if (event.type == SDL_EVENT_QUIT) {
+		quit = true;
+		break;
 	}
 
-	// Rotate with mouse drag
-	if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-			auto delta = lastMousePos - mouseMoved->position;
-			objectRotations[shaderData.selected].x += (float)delta.y * 0.0005f * (float)elapsed.asMilliseconds();
-			objectRotations[shaderData.selected].y -= (float)delta.x * 0.0005f * (float)elapsed.asMilliseconds();
+	// Rotate the selected object with mouse drag
+	if (event.type == SDL_EVENT_MOUSE_MOTION) {
+		if (event.button.button == SDL_BUTTON_LEFT) {
+			objectRotations[shaderData.selected].x -= (float)event.motion.yrel * elapsedTime;
+			objectRotations[shaderData.selected].y += (float)event.motion.xrel * elapsedTime;
 		}
-		lastMousePos = mouseMoved->position;
 	}
 
 	// Zooming with the mouse wheel
-	if (const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
-		camPos.z += (float)mouseWheelScrolled->delta * 0.025f * (float)elapsed.asMilliseconds();
+	if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+		camPos.z += (float)event.wheel.y * elapsedTime * 10.0f;
 	}
 
 	// Select active model instance
-	if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-		if (keyPressed->code == sf::Keyboard::Key::Add) {
+	if (event.type == SDL_EVENT_KEY_DOWN) {
+		if (event.key.key == SDLK_PLUS || event.key.key == SDLK_KP_PLUS) {
 			shaderData.selected = (shaderData.selected < 2) ? shaderData.selected + 1 : 0;
 		}
-		if (keyPressed->code == sf::Keyboard::Key::Subtract) {
+		if (event.key.key == SDLK_MINUS || event.key.key == SDLK_KP_MINUS) {
 			shaderData.selected = (shaderData.selected > 0) ? shaderData.selected - 1 : 2;
 		}
-	}	
+	}
 
 	// Window resize
-	if (const auto* resized = event->getIf<sf::Event::Resized>()) {
+	if (event.type == SDL_EVENT_WINDOW_RESIZED) {
 		updateSwapchain = true;
 	}
 }
 ```
 
-We want to have some interactivity in our application. For that we calculate rotation for the currently selected model instance based on mouse movement when the left button is down in the `MouseMoved` event. And similar with the mousewheel in `MouseWheelScrolled` to allow zooming the camera in and out. The `keyPressed` event lets us toggle between the model instances.
+We want to have some interactivity in our application. For that we calculate rotation for the currently selected model instance based on mouse movement when the left button is down in the `SDL_EVENT_MOUSE_MOTION` event. Same with the mousewheel in `SDL_EVENT_MOUSE_WHEEL` to allow zooming the camera in and out. The `SDL_EVENT_KEY_DOWN` event lets us toggle between the model instances using the plus and minus keys.
 
-The `Closed` event is called when our application is to be closed, no matter how. Calling `close` on our SFML window will exit the outer render loop (which checks if the window is open) and jumps to the [clean up](#cleaning-up) part of the code.
+The `SDL_EVENT_QUIT` event is called when our application is to be closed, no matter how. We set `quit` to true in that case, exit outer render loop and jump to the [clean up](#cleaning-up) part of the code.
 
-Although it's optional, and something games often don't implement, we also handle resizing via the `Resized` event, which requires recreating the swapchain and associated resources.
+Although it's optional, and something games often don't implement, we also handle resizing via the `SDL_EVENT_WINDOW_RESIZED` event, which requires recreating the swapchain and associated resources.
 
 ### Recreate swapchain
 

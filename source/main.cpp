@@ -55,7 +55,7 @@ struct ShaderData {
 	glm::mat4 view;
 	glm::mat4 model[3];
 	glm::vec4 lightPos{ 0.0f, -10.0f, 10.0f, 0.0f };
-	uint32_t selected{1};
+	uint32_t selected{ 1 };
 } shaderData{};
 struct ShaderDataBuffer {
 	VmaAllocation allocation{ VK_NULL_HANDLE };
@@ -173,7 +173,8 @@ int main(int argc, char* argv[])
 	VmaAllocatorCreateInfo allocatorCI{ .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, .physicalDevice = devices[deviceIndex], .device = device, .pVulkanFunctions = &vkFunctions, .instance = instance };
 	chk(vmaCreateAllocator(&allocatorCI, &allocator));
 	// Window and surface
-	auto window = SDL_CreateWindow("How to Vulkan", 1280u, 720u, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+	SDL_Window* window = SDL_CreateWindow("How to Vulkan", 1280u, 720u, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+	assert(window);
 	chk(SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface));
 	chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
 	VkSurfaceCapabilitiesKHR surfaceCaps{};
