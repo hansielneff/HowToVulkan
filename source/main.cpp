@@ -2,10 +2,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <SFML/Graphics.hpp>
-#include <vulkan/vulkan.h>
 #define VOLK_IMPLEMENTATION
+#include <vulkan/vulkan.h>
 #include <volk/volk.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #include <vector>
 #include <array>
 #include <string>
@@ -54,7 +55,7 @@ struct ShaderData {
 	glm::mat4 view;
 	glm::mat4 model[3];
 	glm::vec4 lightPos{ 0.0f, -10.0f, 10.0f, 0.0f };
-	uint32_t selected{1};
+	uint32_t selected{ 1 };
 } shaderData{};
 struct ShaderDataBuffer {
 	VmaAllocation allocation{ VK_NULL_HANDLE };
@@ -76,7 +77,7 @@ VkDescriptorSet descriptorSetTex{ VK_NULL_HANDLE };
 Slang::ComPtr<slang::IGlobalSession> slangGlobalSession;
 glm::vec3 camPos{ 0.0f, 0.0f, -6.0f };
 glm::vec3 objectRotations[3]{};
-sf::Vector2i lastMousePos{};
+glm::ivec2 windowSize{};
 struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 normal;
@@ -108,15 +109,18 @@ static inline void chk(bool result) {
 
 int main(int argc, char* argv[])
 {
+	chk(SDL_Init(SDL_INIT_VIDEO));
+	chk(SDL_Vulkan_LoadLibrary(NULL));
 	volkInitialize();
 	// Instance
 	VkApplicationInfo appInfo{ .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, .pApplicationName = "How to Vulkan", .apiVersion = VK_API_VERSION_1_3 };
-	const std::vector<const char*> instanceExtensions{ sf::Vulkan::getGraphicsRequiredInstanceExtensions() };
+	uint32_t instanceExtensionsCount{ 0 };
+	char const* const* instanceExtensions{ SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount) };
 	VkInstanceCreateInfo instanceCI{
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 		.pApplicationInfo = &appInfo,
-		.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size()),
-		.ppEnabledExtensionNames = instanceExtensions.data(),
+		.enabledExtensionCount = instanceExtensionsCount,
+		.ppEnabledExtensionNames = instanceExtensions,
 	};
 	chk(vkCreateInstance(&instanceCI, nullptr, &instance));
 	volkLoadInstance(instance);
@@ -168,8 +172,10 @@ int main(int argc, char* argv[])
 	VmaAllocatorCreateInfo allocatorCI{ .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, .physicalDevice = devices[deviceIndex], .device = device, .pVulkanFunctions = &vkFunctions, .instance = instance };
 	chk(vmaCreateAllocator(&allocatorCI, &allocator));
 	// Window and surface
-	auto window = sf::RenderWindow(sf::VideoMode({ 1280, 720u }), "How to Vulkan");
-	chk(window.createVulkanSurface(instance, surface));
+	SDL_Window* window = SDL_CreateWindow("How to Vulkan", 1280u, 720u, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+	assert(window);
+	chk(SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface));
+	chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
 	VkSurfaceCapabilitiesKHR surfaceCaps{};
 	chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface, &surfaceCaps));
 	// Swap chain
@@ -213,7 +219,7 @@ int main(int argc, char* argv[])
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		.imageType = VK_IMAGE_TYPE_2D,
 		.format = depthFormat,
-		.extent{.width = window.getSize().x, .height = window.getSize().y, .depth = 1 },
+		.extent{.width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y), .depth = 1},
 		.mipLevels = 1,
 		.arrayLayers = 1,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -452,14 +458,15 @@ int main(int argc, char* argv[])
 	};
 	chk(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
 	// Render loop
-	sf::Clock clock;
-	while (window.isOpen()) {
+	uint64_t lastTime{ SDL_GetTicks() };
+	bool quit{ false };
+	while (!quit) {
 		// Sync
 		chk(vkWaitForFences(device, 1, &fences[frameIndex], true, UINT64_MAX));
 		chk(vkResetFences(device, 1, &fences[frameIndex]));
 		chkSwapchain(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, presentSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex));
 		// Update shader data
-		shaderData.projection = glm::perspective(glm::radians(45.0f), (float)window.getSize().x / (float)window.getSize().y, 0.1f, 32.0f);
+		shaderData.projection = glm::perspective(glm::radians(45.0f), (float)windowSize.x / (float)windowSize.y, 0.1f, 32.0f);
 		shaderData.view = glm::translate(glm::mat4(1.0f), camPos);
 		for (auto i = 0; i < 3; i++) {
 			auto instancePos = glm::vec3((float)(i - 1) * 3.0f, 0.0f, 0.0f);
@@ -515,16 +522,16 @@ int main(int argc, char* argv[])
 		};
 		VkRenderingInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-			.renderArea{.extent{.width = window.getSize().x, .height = window.getSize().y }},
+			.renderArea{.extent{.width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y) }},
 			.layerCount = 1,
 			.colorAttachmentCount = 1,
 			.pColorAttachments = &colorAttachmentInfo,
 			.pDepthAttachment = &depthAttachmentInfo
 		};
 		vkCmdBeginRendering(cb, &renderingInfo);
-		VkViewport vp{ .width = static_cast<float>(window.getSize().x), .height = static_cast<float>(window.getSize().y), .minDepth = 0.0f, .maxDepth = 1.0f};
+		VkViewport vp{ .width = static_cast<float>(windowSize.x), .height = static_cast<float>(windowSize.y), .minDepth = 0.0f, .maxDepth = 1.0f};
 		vkCmdSetViewport(cb, 0, 1, &vp);
-		VkRect2D scissor{ .extent{ .width = window.getSize().x, .height = window.getSize().y } };
+		VkRect2D scissor{ .extent{ .width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y) } };
 		vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdSetScissor(cb, 0, 1, &scissor);
 		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetTex, 0, nullptr);
@@ -572,41 +579,42 @@ int main(int argc, char* argv[])
 		};
 		chkSwapchain(vkQueuePresentKHR(queue, &presentInfo));
 		// Event polling
-		sf::Time elapsed = clock.restart();
-		while (const std::optional event = window.pollEvent()) {
-			if (event->is<sf::Event::Closed>()) {
-				window.close();
+		float elapsedTime{ (SDL_GetTicks() - lastTime) / 1000.0f };
+		lastTime = SDL_GetTicks();
+		for (SDL_Event event; SDL_PollEvent(&event);) {
+			if (event.type == SDL_EVENT_QUIT) {
+				quit = true;
+				break;
 			}
-			if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
-				if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-					auto delta = lastMousePos - mouseMoved->position;
-					objectRotations[shaderData.selected].x += (float)delta.y * 0.0005f * (float)elapsed.asMilliseconds();
-					objectRotations[shaderData.selected].y -= (float)delta.x * 0.0005f * (float)elapsed.asMilliseconds();
+			if (event.type == SDL_EVENT_MOUSE_MOTION) {
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					objectRotations[shaderData.selected].x -= (float)event.motion.yrel * elapsedTime;
+					objectRotations[shaderData.selected].y += (float)event.motion.xrel * elapsedTime;
 				}
-				lastMousePos = mouseMoved->position;
 			}
-			if (const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
-				camPos.z += (float)mouseWheelScrolled->delta * 0.025f * (float)elapsed.asMilliseconds();
+			if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+				camPos.z += (float)event.wheel.y * elapsedTime * 10.0f;
 			}
-			if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-				if (keyPressed->code == sf::Keyboard::Key::Add) {
+			if (event.type == SDL_EVENT_KEY_DOWN) {
+				if (event.key.key == SDLK_PLUS || event.key.key == SDLK_KP_PLUS) {
 					shaderData.selected = (shaderData.selected < 2) ? shaderData.selected + 1 : 0;
 				}
-				if (keyPressed->code == sf::Keyboard::Key::Subtract) {
+				if (event.key.key == SDLK_MINUS || event.key.key == SDLK_KP_MINUS) {
 					shaderData.selected = (shaderData.selected > 0) ? shaderData.selected - 1 : 2;
 				}
 			}
 			// Window resize
-			if (event->getIf<sf::Event::Resized>()) {
+			if (event.type == SDL_EVENT_WINDOW_RESIZED) {
 				updateSwapchain = true;
 			}
 		}
 		if (updateSwapchain) {
+			chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
 			updateSwapchain = false;
 			chk(vkDeviceWaitIdle(device));
 			chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface, &surfaceCaps));
 			swapchainCI.oldSwapchain = swapchain;
-			swapchainCI.imageExtent = { .width = static_cast<uint32_t>(window.getSize().x), .height = static_cast<uint32_t>(window.getSize().y)};
+			swapchainCI.imageExtent = { .width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y)};
 			chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
 			for (auto i = 0; i < imageCount; i++) {
 				vkDestroyImageView(device, swapchainImageViews[i], nullptr);
@@ -622,7 +630,7 @@ int main(int argc, char* argv[])
 			vkDestroySwapchainKHR(device, swapchainCI.oldSwapchain, nullptr);
 			vmaDestroyImage(allocator, depthImage, depthImageAllocation);
 			vkDestroyImageView(device, depthImageView, nullptr);
-			depthImageCI.extent = { .width = static_cast<uint32_t>(window.getSize().x), .height = static_cast<uint32_t>(window.getSize().y), .depth = 1 };
+			depthImageCI.extent = { .width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y), .depth = 1 };
 			VmaAllocationCreateInfo allocCI{ .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, .usage = VMA_MEMORY_USAGE_AUTO };
 			chk(vmaCreateImage(allocator, &depthImageCI, &allocCI, &depthImage, &depthImageAllocation, nullptr));
 			VkImageViewCreateInfo viewCI{ .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, .image = depthImage, .viewType = VK_IMAGE_VIEW_TYPE_2D, .format = depthFormat, .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, .levelCount = 1, .layerCount = 1 } };
@@ -660,6 +668,9 @@ int main(int argc, char* argv[])
 	vkDestroyCommandPool(device, commandPool, nullptr);
 	vkDestroyShaderModule(device, shaderModule, nullptr);
 	vmaDestroyAllocator(allocator);
+	SDL_DestroyWindow(window);
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+	SDL_Quit();
 	vkDestroyDevice(device, nullptr);
 	vkDestroyInstance(instance, nullptr);
 }

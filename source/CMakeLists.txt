@@ -13,18 +13,14 @@ else()
     message(STATUS "Found Vulkan SDK in $ENV{VULKAN_SDK}")
 endif()
 
-# Volk, VMA, glm and Slang are taken from the SDK
+# SDL3, Volk, VMA, glm and Slang are taken from the SDK
 include_directories($ENV{VULKAN_SDK}/include)
 # These are not part of the SDK
 include_directories(external/tinyobj)
 include_directories(external/ktx/include)
 include_directories(external/ktx/other_include)
 
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 3.0.1
-    GIT_SHALLOW ON)
-FetchContent_MakeAvailable(SFML)
+find_package (Vulkan REQUIRED)
 
 if (NOT WIN32)
     FetchContent_Declare(GLM
@@ -36,9 +32,6 @@ if (NOT WIN32)
     FetchContent_MakeAvailable(GLM)
 endif()
 
-OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
-OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
-
 set(KTX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/ktx)
 set(KTX_SOURCES
     ${KTX_DIR}/lib/texture.c
@@ -48,13 +41,14 @@ set(KTX_SOURCES
     ${KTX_DIR}/lib/memstream.c
     ${KTX_DIR}/lib/filestream.c
     ${KTX_DIR}/lib/vkloader.c)
-
 add_library(ktx STATIC ${KTX_SOURCES})
+
 if (NOT WIN32)
     target_link_libraries(ktx PUBLIC $ENV{VULKAN_SDK}/lib/libvulkan.so)
 endif()
 
-find_library(Slang_LIBRARY NAMES slang HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
+find_library(SDL_LIBRARY NAMES SDL3 HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
+find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
 
 if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WIN32_KHR")
@@ -74,7 +68,7 @@ if (WIN32)
 endif()
 set_target_properties(${NAME} PROPERTIES DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(${NAME} PRIVATE cxx_std_20)
-target_link_libraries(${NAME} PRIVATE SFML::Graphics ktx ${Slang_LIBRARY})
+target_link_libraries(${NAME} PRIVATE ${SDL_LIBRARY} ktx ${Slang_LIBRARY})
 if (NOT WIN32)
     target_link_libraries(${NAME} PRIVATE glm::glm-header-only)
 endif()
