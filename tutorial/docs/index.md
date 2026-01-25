@@ -5,7 +5,9 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # How to Vulkan in 2026
 
-*Last update: Replaced SFML with SDL3 (2026-01-24)*
+!!! Note "Updates"
+
+	2026-01-24: Replaced SFML with SDL3
 
 ## About
 
@@ -40,7 +42,7 @@ Copyright (c) 2025-2026, [Sascha Willems](https://www.saschawillems.de). The con
 
 Vulkan is an explicit low-level API. Writing code for it can be very verbose. To concentrate on the interesting parts we'll be using the following libraries:
 
-* [SDL](https://www.libsdl.org/) - Windowing and input (among other things not used in this tutorial). Without a library like this we would have to write a lot of platform specific code. Alternatives are [glfw](https://www.glfw.org/) and [SFML](https://www.sfml-dev.org/). SDL has the broadest platform support of these.
+* [SDL](https://www.libsdl.org/) - Windowing and input (among other things not used in this tutorial). Without a library like this we would have to write a lot of platform specific code. Alternatives are [GLFW](https://www.glfw.org/) and [SFML](https://www.sfml-dev.org/). SDL has the broadest platform support of these.
 * [Volk](https://github.com/zeux/volk) - Meta-loader that simplifies loading of Vulkan functions.
 * [VMA](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - Simplifies dealing with memory allocations. Removes some of the verbosity around memory management.
 * [glm](https://github.com/g-truc/glm) - A mathematics library with support for things like matrices and vectors.
@@ -323,7 +325,7 @@ But that's where libraries like SDL come into play. They take care of all the pl
 
 !!! Tip
 
-	Libraries like SDL, glfw and SFML also take care of other platform specific functionality like input, audio and networking (to a varying degree).
+	Libraries like SDL, GLFW and SFML also take care of other platform specific functionality like input, audio and networking (to a varying degree).
 
 First we create a window with Vulkan support:
 
