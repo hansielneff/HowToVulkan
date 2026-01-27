@@ -17,12 +17,10 @@ Vulkan was released almost 10 years ago, and a lot has changed. Version 1.0 had 
 
 And so for this tutorial we will be using [Vulkan 1.3](https://docs.vulkan.org/refpages/latest/refpages/source/VK_VERSION_1_3.html) as a baseline. This gives us access to several features that make Vulkan easier to use while still supporting a wide range of GPUs and platforms. The ones we will be using are:
 
-| Feature | Description |
-| - | - |
-| [Dynamic rendering](https://www.khronos.org/blog/streamlining-render-passes) | Greatly simplifies render pass setup, one of the most criticized Vulkan areas |
-| [Buffer device address](https://docs.vulkan.org/guide/latest/buffer_device_address.html) | Lets us access buffers via pointers instead of going through descriptors |
-| [Descriptor indexing](https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_descriptor_indexing.html) | Simplifies descriptor management, often referred to as "bindless" |
-| [Synchronization2](https://docs.vulkan.org/guide/latest/extensions/VK_KHR_synchronization2.html) | Improves synchronization handling, one of the hardest areas of Vulkan |
+* [Dynamic rendering](https://www.khronos.org/blog/streamlining-render-passes) - Greatly simplifies render pass setup, one of the most criticized Vulkan areas
+* [Buffer device address](https://docs.vulkan.org/guide/latest/buffer_device_address.html) - Lets us access buffers via pointers instead of going through descriptors
+* [Descriptor indexing](https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_descriptor_indexing.html) - Simplifies descriptor management, often referred to as "bindless"
+* [Synchronization2](https://docs.vulkan.org/guide/latest/extensions/VK_KHR_synchronization2.html) - Improves synchronization handling, one of the hardest areas of Vulkan
 
 tl;dr: Doing Vulkan in 2026 can be very different from doing Vulkan in 2016. That's what I hope to show with this.
 
@@ -42,12 +40,12 @@ Copyright (c) 2025-2026, [Sascha Willems](https://www.saschawillems.de). The con
 
 Vulkan is an explicit low-level API. Writing code for it can be very verbose. To concentrate on the interesting parts we'll be using the following libraries:
 
-* [SDL](https://www.libsdl.org/) - Windowing and input (among other things not used in this tutorial). Without a library like this we would have to write a lot of platform specific code. Alternatives are [GLFW](https://www.glfw.org/) and [SFML](https://www.sfml-dev.org/). SDL has the broadest platform support of these.
-* [Volk](https://github.com/zeux/volk) - Meta-loader that simplifies loading of Vulkan functions.
-* [VMA](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - Simplifies dealing with memory allocations. Removes some of the verbosity around memory management.
-* [glm](https://github.com/g-truc/glm) - A mathematics library with support for things like matrices and vectors.
-* [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader) - Single file loader for the obj 3D format.
-* [KTX-Software](https://github.com/KhronosGroup/KTX-Software) - Khronos KTX GPU texture image file loader.
+* [SDL](https://www.libsdl.org/) - Windowing and input (and others not used in this tutorial). Without a library like this we would have to write a lot of platform specific code. Alternatives are [GLFW](https://www.glfw.org/) and [SFML](https://www.sfml-dev.org/). SDL has the broadest platform support of these
+* [Volk](https://github.com/zeux/volk) - Meta-loader that simplifies loading of Vulkan functions
+* [VMA](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - Simplifies dealing with memory allocations. Removes some of the verbosity around memory management
+* [glm](https://github.com/g-truc/glm) - A mathematics library with support for things like matrices and vectors
+* [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader) - Single header loader for the obj 3D format
+* [KTX-Software](https://github.com/KhronosGroup/KTX-Software) - Khronos KTX GPU texture image file loader
 
 !!! Tip
 
