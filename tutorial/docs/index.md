@@ -1009,29 +1009,29 @@ To compile Slang shaders, we first create a global Slang session, which is the c
 slang::createGlobalSession(slangGlobalSession.writeRef());
 ```
 
-Next we create a session to define our compilations scope. We want to compile to SPIR-V, so we need to set the target `format` to `SLANG_SPIRV`. Similar to using a fixed Vulkan version as a baseline we want [SPIR-V 1.4](https://docs.vulkan.org/refpages/latest/refpages/source/VK_KHR_spirv_1_4.html) as our baseline for shaders. This has been added to the core in Vulkan 1.2, so it's guaranteed to be supported in our case. We also change the `defaultMatrixLayoutMode` to a column major layout to match the matrix layout of the GLM library we use to construct matrices later on:
+Next we create a session to define our compilations scope. We want to compile to SPIR-V, so we set the target `format` to `SLANG_SPIRV`. We use [SPIR-V 1.4](https://docs.vulkan.org/refpages/latest/refpages/source/VK_KHR_spirv_1_4.html) as the baseline for shader features. This has been core since Vulkan 1.2, so it's guaranteed to be supported in our case. We also change the `defaultMatrixLayoutMode` to a column major layout to match the layout of the GLM library we use to construct matrices later on:
 
 ```cpp
 auto slangTargets{ std::to_array<slang::TargetDesc>({ {
 	.format{SLANG_SPIRV},
 	.profile{slangGlobalSession->findProfile("spirv_1_4")}
-} }) };
+} })};
 auto slangOptions{ std::to_array<slang::CompilerOptionEntry>({ {
 	slang::CompilerOptionName::EmitSpirvDirectly,
 	{slang::CompilerOptionValueKind::Int, 1}
-} }) };
+} })};
 slang::SessionDesc slangSessionDesc{
-	.targets{targets.data()},
-	.targetCount{SlangInt(targets.size())},
+	.targets{slangTargets.data()},
+	.targetCount{SlangInt(slangTargets.size())},
 	.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-	.compilerOptionEntries{slangTargets.data()},
-	.compilerOptionEntryCount{uint32_t(slangTargets.size())}
+	.compilerOptionEntries{slangOptions.data()},
+	.compilerOptionEntryCount{uint32_t(slangOptions.size())}
 };
 Slang::ComPtr<slang::ISession> slangSession;
 slangGlobalSession->createSession(slangSessionDesc, slangSession.writeRef());
 ```
 
-After a call to `createSession` we can use that session to get the SPIR-V representation of the Slang shader. We first load the textual shader from a file using `loadModuleFromSource` and then use `getTargetCode` to compile all entry points in our shader to SPIR-V:
+The session created by `createSession` can then be used to get the SPIR-V representation of the Slang shader. For that, we first load the textual shader from a file using `loadModuleFromSource` and then use `getTargetCode` to compile all entry points in our shader to SPIR-V:
 
 ```cpp
 Slang::ComPtr<slang::IModule> slangModule{
@@ -1041,7 +1041,7 @@ Slang::ComPtr<ISlangBlob> spirv;
 slangModule->getTargetCode(0, spirv.writeRef());
 ```
 
-To then use our shader in our graphics pipeline (see below) we need to create a shader module. These are containers for compiled SPIR-V shaders. To create such a module, we pass the SPIR-V compiled by Slang to [`vkCreateShaderModule`](https://docs.vulkan.org/refpages/latest/refpages/source/vkCreateShaderModule.html):
+To use our shader in the graphics pipeline (see below), we need to create a shader module. These are containers for compiled SPIR-V shaders. To create such a module, we pass the SPIR-V compiled by Slang to [`vkCreateShaderModule`](https://docs.vulkan.org/refpages/latest/refpages/source/vkCreateShaderModule.html):
 
 ```cpp
 VkShaderModuleCreateInfo shaderModuleCI{
