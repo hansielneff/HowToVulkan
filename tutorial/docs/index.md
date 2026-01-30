@@ -24,6 +24,11 @@ And so for this tutorial we will be using [Vulkan 1.3](https://docs.vulkan.org/r
 
 tl;dr: Doing Vulkan in 2026 can be very different from doing Vulkan in 2016. That's what I hope to show with this.
 
+!!! Tip
+
+	A list of devices supporting at least Vulkan 1.3 can be found [here](https://vulkan.gpuinfo.org/listdevices.php?apiversion=1.3).
+
+
 ## Target audience
 
 The tutorial is focused on writing actual Vulkan code and getting things up and running as fast as possible (possibly in an afternoon). It won't explain programming, software architecture, graphics concepts or how Vulkan works (in detail). Instead it'll often contain links to relevant information like the [Vulkan specification](https://docs.vulkan.org/). You should bring at least basic knowledge of C/C++ and realtime graphics concepts.
