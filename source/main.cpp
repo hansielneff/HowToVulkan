@@ -149,6 +149,7 @@ int main(int argc, char* argv[])
 			break;
 		}
 	}
+	chk(SDL_Vulkan_GetPresentationSupport(instance, devices[deviceIndex], queueFamily));
 	// Logical device
 	const float qfpriorities{ 1.0f };
 	VkDeviceQueueCreateInfo queueCI{ .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = queueFamily, .queueCount = 1, .pQueuePriorities = &qfpriorities };

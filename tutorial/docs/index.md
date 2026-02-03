@@ -5,11 +5,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # How to Vulkan in 2026
 
-!!! Note "Updates"
-
-	2026-01-24: Replaced SFML with SDL3
-
-## About
+## Intro
 
 [This repository](https://github.com/SaschaWillems/HowToVulkan) and the accompanying tutorial demonstrate ways of writing a [Vulkan](https://vulkan.org/) graphics application in 2026. The goal is to leverage modern features to simplify Vulkan usage and, while doing so, create something more than just a basic colored triangle.
 
@@ -216,9 +212,15 @@ for (size_t i = 0; i < queueFamilies.size(); i++) {
 }
 ```
 
+As we want to [present](#present-image) something to the screen using that graphics queue, we also check if said queue supports presentation:
+
+```cpp
+chk(SDL_Vulkan_GetPresentationSupport(instance, devices[deviceIndex], queueFamily));
+```
+
 !!! Tip
 
-	You'll rarely find GPUs that don't have a queue family that supports graphics. Also most of the time the first queue family supports both graphics and compute (as well as presentation, more on that later). It's still a good practice to check this like we do above, esp. if you add in other queue types like compute.
+	Devices that don't have a queue family supporting graphics are very rare in reality. Also on most devices, the first queue family supports graphics, compute and presentation. It's still a good practice to check this like we do above, esp. when you want to use other queue types like compute. If you run into devices where graphics, compute and/or presentation require different queue families, you'd have to do additional synchronization between these queues.
 
 For our next step we need to reference that queue family using a [`VkDeviceQueueCreateInfo`](https://docs.vulkan.org/refpages/latest/refpages/source/VkDeviceQueueCreateInfo.html). It is possible to request multiple queues from the same family, but we won't require that. That's why we need to specify priorities in `pQueuePriorities` (in our case just one). With multiple queues from the same family, a driver might use that information to prioritize work:
 
