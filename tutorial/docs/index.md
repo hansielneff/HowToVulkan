@@ -5,6 +5,11 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # How to Vulkan in 2026
 
+!!! Info
+
+	Last updated 2026-02-07: Non-uniform resource indexing
+
+
 ## Intro
 
 [This repository](https://github.com/SaschaWillems/HowToVulkan) and the accompanying tutorial demonstrate ways of writing a [Vulkan](https://vulkan.org/) graphics application in 2026. The goal is to leverage modern features to simplify Vulkan usage and, while doing so, create something more than just a basic colored triangle.
