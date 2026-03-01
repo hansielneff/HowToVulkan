@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 !!! Info
 
-	Last updated 2026-02-21: Persistent buffer mappings vis VMA
+	Last updated 2026-03-01: Minor synchronization updates
 
 
 ## Intro
@@ -1430,9 +1430,9 @@ During rendering, color information will be written to the current [swapchain im
 std::array<VkImageMemoryBarrier2, 2> outputBarriers{
 	VkImageMemoryBarrier2{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-		.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		.srcAccessMask = 0,
-		.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
@@ -1441,9 +1441,9 @@ std::array<VkImageMemoryBarrier2, 2> outputBarriers{
 	},
 	VkImageMemoryBarrier2{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-		.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 		.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-		.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
 		.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
@@ -1565,11 +1565,11 @@ And transition the swapchain image that we just used as an attachment (to output
 ```cpp
 VkImageMemoryBarrier2 barrierPresent{
 	.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-	.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+	.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 	.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-	.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+	.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 	.dstAccessMask = 0,
-	.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+	.oldLayout = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 	.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 	.image = swapchainImages[imageIndex],
 	.subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 }
@@ -1597,7 +1597,7 @@ This moves it to the [executable state](https://docs.vulkan.org/spec/latest/chap
 In order to execute the commands we just recorded we need to submit the command buffer to a matching queue. In a real-world application it's not uncommon to have multiple queues of different types and also more complex submission patterns. But we only use graphics commands (no compute or ray tracing) and as such also only have a single graphics queue to which we submit our current frame's command buffer:
 
 ```cpp
-VkPipelineStageFlags waitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+VkPipelineStageFlags waitStages = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 VkSubmitInfo submitInfo{
 	.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 	.waitSemaphoreCount = 1,
