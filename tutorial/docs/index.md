@@ -416,7 +416,7 @@ for (VkFormat& format : depthFormatList) {
 
 !!! Note
 
-	The Vulkan spec [guarantees]((https://docs.vulkan.org/spec/latest/chapters/formats.html#features-required-format-support)) certain format and usage combinations to be supported on all devices. One such guarantee is for depth formats, where either `VK_FORMAT_D32_SFLOAT_S8_UINT` or `VK_FORMAT_D24_UNORM_S8_UINT` must be supported for use as a depth attachment.
+	The Vulkan spec [guarantees](https://docs.vulkan.org/spec/latest/chapters/formats.html#features-required-format-support) certain format and usage combinations to be supported on all devices. One such guarantee is for depth formats, where either `VK_FORMAT_D32_SFLOAT_S8_UINT` or `VK_FORMAT_D24_UNORM_S8_UINT` must be supported for use as a depth attachment.
 
 The properties of the depth image are then defined in a [`VkImageCreateInfo`](https://docs.vulkan.org/refpages/latest/refpages/source/VkImageCreateInfo.html) structure. Some of these are similar to those found at swapchain creation:
 
