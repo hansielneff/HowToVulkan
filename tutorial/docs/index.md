@@ -738,7 +738,7 @@ With the help of that library, Loading such a file from disk is trivial:
 for (auto i = 0; i < textures.size(); i++) {
 	ktxTexture* ktxTexture{ nullptr };
 	std::string filename = "assets/suzanne" + std::to_string(i) + ".ktx";
-	ktxTexture_CreateFromNamedFile("assets/suzanne.ktx", KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+	ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
 	...
 ```
 
